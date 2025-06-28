@@ -5,7 +5,7 @@ token.json
 .replit
 database.py
 
-.env
+attached_assets/.env
 credentials.json
 *.key
 
