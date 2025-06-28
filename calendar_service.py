@@ -45,8 +45,14 @@ class CalendarService:
                 # If there are no (valid) credentials available, try OAuth flow
                 if not creds or not creds.valid:
                     if creds and creds.expired and creds.refresh_token:
-                        creds.refresh(Request())
-                    elif os.path.exists('client_secrets.json'):
+                        try:
+                            creds.refresh(Request())
+                            logger.info("OAuth credentials refreshed successfully")
+                        except Exception as e:
+                            logger.warning(f"Failed to refresh credentials: {str(e)}")
+                            creds = None
+                    
+                    if (not creds or not creds.valid) and os.path.exists('client_secrets.json'):
                         # Run OAuth flow if client secrets available
                         flow = InstalledAppFlow.from_client_secrets_file(
                             'client_secrets.json', self.SCOPES
