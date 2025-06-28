@@ -67,7 +67,7 @@ class Booking(Base):
     end_time = Column(DateTime, nullable=False)
     status = Column(String, default="confirmed")  # confirmed, cancelled, rescheduled
     calendar_event_id = Column(String)  # Google Calendar event ID
-    metadata = Column(JSON, default={})
+    extra_data = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -168,7 +168,7 @@ class DatabaseManager:
         description: str = None,
         user_id: str = None,
         calendar_event_id: str = None,
-        metadata: Dict = None
+        extra_data: Dict = None
     ) -> Booking:
         """Create a new booking record"""
         with self.get_session() as session:
@@ -180,7 +180,7 @@ class DatabaseManager:
                 start_time=start_time,
                 end_time=end_time,
                 calendar_event_id=calendar_event_id,
-                metadata=metadata or {}
+                extra_data=extra_data or {}
             )
             session.add(booking)
             session.commit()

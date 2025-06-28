@@ -366,7 +366,7 @@ class BookingAgent:
                         end_time=datetime.fromisoformat(end_time),
                         description=state.meeting_description,
                         calendar_event_id=event.get('id'),
-                        metadata={
+                        extra_data={
                             'duration': duration_minutes,
                             'agent_version': 'v1.0'
                         }
