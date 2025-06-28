@@ -34,8 +34,9 @@ class ConversationState(BaseModel):
 class BookingAgent:
     """LangGraph-based conversational booking agent"""
     
-    def __init__(self, calendar_service):
+    def __init__(self, calendar_service, db_manager=None):
         self.calendar_service = calendar_service
+        self.db_manager = db_manager
         self.memory = MemorySaver()
         self.graph = self._build_graph()
     
@@ -115,7 +116,8 @@ class BookingAgent:
         self, 
         message: str, 
         conversation_state: Dict, 
-        conversation_history: List[Dict]
+        conversation_history: List[Dict],
+        conversation_id: str = None
     ) -> Dict[str, Any]:
         """Process a user message and return AI response"""
         try:
@@ -125,10 +127,13 @@ class BookingAgent:
                 **conversation_state
             )
             
+            # Store conversation ID for database operations
+            self._current_conversation_id = conversation_id
+            
             # Run the graph
             result = await self.graph.ainvoke(
                 state,
-                {"configurable": {"thread_id": "default"}}
+                {"configurable": {"thread_id": conversation_id or "default"}}
             )
             
             return {
@@ -351,6 +356,25 @@ class BookingAgent:
                 description=state.meeting_description or "Scheduled via AI Assistant"
             )
             
+            # Save booking to database if available
+            if self.db_manager and hasattr(self, '_current_conversation_id'):
+                try:
+                    booking = self.db_manager.create_booking(
+                        conversation_id=self._current_conversation_id,
+                        title=state.meeting_title,
+                        start_time=datetime.fromisoformat(start_time),
+                        end_time=datetime.fromisoformat(end_time),
+                        description=state.meeting_description,
+                        calendar_event_id=event.get('id'),
+                        metadata={
+                            'duration': duration_minutes,
+                            'agent_version': 'v1.0'
+                        }
+                    )
+                    logger.info(f"Booking saved to database: {booking.id}")
+                except Exception as e:
+                    logger.error(f"Failed to save booking to database: {str(e)}")
+            
             formatted_time = format_datetime_natural(start_time)
             state.last_response = (
                 f"✅ Perfect! I've booked your {state.meeting_title.lower()} for "
@@ -358,7 +382,7 @@ class BookingAgent:
                 f"Event details:\n"
                 f"• Title: {state.meeting_title}\n"
                 f"• Date & Time: {formatted_time}\n"
-                f"• Duration: {state.duration} minutes\n\n"
+                f"• Duration: {duration_minutes} minutes\n\n"
                 "Is there anything else I can help you with?"
             )
             

@@ -104,7 +104,7 @@ def main():
                         "content": error_msg
                     })
     
-    # Sidebar with helpful information
+    # Sidebar with helpful information and data views
     with st.sidebar:
         st.header("💡 Tips")
         st.markdown("""
@@ -119,6 +119,7 @@ def main():
         - ✅ Google Calendar integration
         - ✅ Smart availability checking
         - ✅ Automatic booking confirmation
+        - ✅ Database storage for history
         
         **Setup Google Calendar:**
         See `GOOGLE_CALENDAR_SETUP.md` for integration instructions
@@ -128,6 +129,47 @@ def main():
             st.session_state.messages = []
             st.session_state.conversation_id = None
             st.rerun()
+        
+        # Data views section
+        st.divider()
+        st.header("📊 Data Views")
+        
+        # Recent conversations
+        if st.button("View Recent Conversations"):
+            try:
+                response = requests.get("http://localhost:8000/conversations", timeout=5)
+                if response.status_code == 200:
+                    conversations = response.json()["conversations"]
+                    st.subheader("Recent Conversations")
+                    for conv in conversations[:5]:
+                        st.write(f"**ID:** {conv['id'][:8]}...")
+                        st.write(f"**Messages:** {conv['message_count']}")
+                        st.write(f"**Created:** {conv['created_at'][:10]}")
+                        if conv['last_message']:
+                            st.write(f"**Last:** {conv['last_message'][:50]}...")
+                        st.write("---")
+                else:
+                    st.error("Could not load conversations")
+            except:
+                st.error("Backend not available")
+        
+        # Recent bookings
+        if st.button("View Recent Bookings"):
+            try:
+                response = requests.get("http://localhost:8000/bookings", timeout=5)
+                if response.status_code == 200:
+                    bookings = response.json()["bookings"]
+                    st.subheader("Recent Bookings")
+                    for booking in bookings[:5]:
+                        st.write(f"**Title:** {booking['title']}")
+                        st.write(f"**Date:** {booking['start_time'][:10]}")
+                        st.write(f"**Time:** {booking['start_time'][11:16]}")
+                        st.write(f"**Status:** {booking['status']}")
+                        st.write("---")
+                else:
+                    st.error("Could not load bookings")
+            except:
+                st.error("Backend not available")
 
 if __name__ == "__main__":
     main()
