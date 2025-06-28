@@ -2,6 +2,14 @@
 credentials.json
 client_secrets.json
 token.json
+.replit
+database.py
+
+.env
+credentials.json
+*.key
+
+
 
 # Python
 __pycache__/
