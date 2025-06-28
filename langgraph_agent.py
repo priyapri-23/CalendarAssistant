@@ -8,14 +8,17 @@ from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel
 import re
 from utils import parse_natural_language_datetime, extract_duration, format_datetime_natural
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-# do not change this unless explicitly requested by the user
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "demo_key")
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+# Using Google Gemini for free AI capabilities
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+else:
+    gemini_client = None
 
 class ConversationState(BaseModel):
     """State model for conversation flow"""
@@ -117,7 +120,7 @@ class BookingAgent:
         message: str, 
         conversation_state: Dict, 
         conversation_history: List[Dict],
-        conversation_id: str = None
+        conversation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Process a user message and return AI response"""
         try:
@@ -128,7 +131,7 @@ class BookingAgent:
             )
             
             # Store conversation ID for database operations
-            self._current_conversation_id = conversation_id
+            self._current_conversation_id = conversation_id or "default"
             
             # Run the graph
             result = await self.graph.ainvoke(
@@ -149,8 +152,24 @@ class BookingAgent:
             }
     
     async def _understand_intent(self, state: ConversationState) -> ConversationState:
-        """Understand user intent using OpenAI"""
+        """Understand user intent using Gemini"""
         try:
+            if not gemini_client:
+                # Fallback to simple keyword matching if no API key
+                message_lower = state.user_message.lower()
+                if any(word in message_lower for word in ['book', 'schedule', 'appointment', 'meeting', 'tomorrow', 'today', 'next week']):
+                    state.intent = "booking"
+                    state.step = "parse_datetime"
+                elif any(word in message_lower for word in ['hello', 'hi', 'hey', 'start']):
+                    state.intent = "inquiry"
+                    state.last_response = "Hello! I'm here to help you schedule appointments. What would you like to book?"
+                    state.step = "clarify"
+                else:
+                    state.intent = "other"
+                    state.last_response = self._generate_clarification_response(state.user_message)
+                    state.step = "clarify"
+                return state
+            
             prompt = f"""
             Analyze this user message for booking intent: "{state.user_message}"
             
@@ -164,13 +183,16 @@ class BookingAgent:
             }}
             """
             
-            response = openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1
+                )
             )
             
-            content = response.choices[0].message.content
+            content = response.text
             if content:
                 result = json.loads(content)
             else:

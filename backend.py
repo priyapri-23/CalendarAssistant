@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 import uvicorn
 import os
 from langgraph_agent import BookingAgent
@@ -21,7 +22,7 @@ booking_agent = BookingAgent(calendar_service, db_manager)
 
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: str = None
+    conversation_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
