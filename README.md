@@ -4,6 +4,7 @@
 
 This is a conversational AI booking assistant that allows users to schedule appointments using natural language. The system combines a Streamlit frontend with a FastAPI backend, utilizing LangGraph for conversation flow management and Google Calendar integration for appointment scheduling.
 
+
 ## System Architecture
 
 The application follows a client-server architecture with three main layers:
