@@ -95,7 +95,15 @@ The application uses a hybrid deployment approach:
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+✓ Added comprehensive Google Calendar integration with dual authentication support (service account + OAuth2)
+✓ Enhanced calendar service with robust error handling and fallback to demonstration mode
+✓ Created detailed setup guide (GOOGLE_CALENDAR_SETUP.md) for real calendar integration
+✓ Implemented security best practices with .gitignore for credential files
+✓ Fixed LangGraph type compatibility issues for stable conversation flow
+
 ## Changelog
 
-Changelog:
-- June 28, 2025. Initial setup
+- June 28, 2025: Initial setup with full conversational AI booking system
+- June 28, 2025: Added Google Calendar integration with setup documentation

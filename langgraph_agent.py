@@ -39,7 +39,7 @@ class BookingAgent:
         self.memory = MemorySaver()
         self.graph = self._build_graph()
     
-    def _build_graph(self) -> StateGraph:
+    def _build_graph(self):
         """Build the LangGraph conversation flow"""
         workflow = StateGraph(ConversationState)
         
@@ -127,7 +127,7 @@ class BookingAgent:
             
             # Run the graph
             result = await self.graph.ainvoke(
-                state.dict(),
+                state,
                 {"configurable": {"thread_id": "default"}}
             )
             
@@ -165,7 +165,11 @@ class BookingAgent:
                 response_format={"type": "json_object"}
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                result = json.loads(content)
+            else:
+                result = {"intent": "other"}
             state.intent = result.get("intent", "other")
             
             if state.intent == "booking":
@@ -293,7 +297,11 @@ class BookingAgent:
             elif re.search(r'\d+', user_response):
                 # User selected a numbered option
                 try:
-                    selection = int(re.search(r'\d+', user_response).group()) - 1
+                    match = re.search(r'\d+', user_response)
+                    if match:
+                        selection = int(match.group()) - 1
+                    else:
+                        raise ValueError("No number found")
                     if 0 <= selection < len(state.available_slots):
                         state.confirmed_slot = state.available_slots[selection]
                         state.step = "book_appointment"
@@ -329,9 +337,10 @@ class BookingAgent:
             
             # Calculate end time
             start_time = state.confirmed_slot["start"]
+            duration_minutes = state.duration or 60
             end_time = (
                 datetime.fromisoformat(start_time) + 
-                timedelta(minutes=state.duration)
+                timedelta(minutes=duration_minutes)
             ).isoformat()
             
             # Book the appointment

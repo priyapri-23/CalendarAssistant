@@ -119,6 +119,9 @@ def main():
         - ✅ Google Calendar integration
         - ✅ Smart availability checking
         - ✅ Automatic booking confirmation
+        
+        **Setup Google Calendar:**
+        See `GOOGLE_CALENDAR_SETUP.md` for integration instructions
         """)
         
         if st.button("Clear Conversation"):

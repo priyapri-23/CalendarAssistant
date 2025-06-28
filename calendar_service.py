@@ -5,6 +5,7 @@ from typing import List, Dict, Optional
 import logging
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -25,24 +26,45 @@ class CalendarService:
         try:
             creds = None
             
-            # Check for existing token
-            if os.path.exists('token.json'):
-                creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
+            # Try service account authentication first
+            if os.path.exists('credentials.json'):
+                try:
+                    creds = service_account.Credentials.from_service_account_file(
+                        'credentials.json', scopes=self.SCOPES
+                    )
+                    logger.info("Using service account authentication")
+                except Exception as e:
+                    logger.warning(f"Service account authentication failed: {str(e)}")
             
-            # If there are no (valid) credentials available, use service account or OAuth
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    # For development/demo purposes, create a mock service
-                    logger.warning("No valid Google Calendar credentials found. Using mock service.")
-                    self.service = None
-                    return
+            # If no service account, try OAuth2 flow
+            if not creds:
+                # Check for existing OAuth token
+                if os.path.exists('token.json'):
+                    creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
+                
+                # If there are no (valid) credentials available, try OAuth flow
+                if not creds or not creds.valid:
+                    if creds and creds.expired and creds.refresh_token:
+                        creds.refresh(Request())
+                    elif os.path.exists('client_secrets.json'):
+                        # Run OAuth flow if client secrets available
+                        flow = InstalledAppFlow.from_client_secrets_file(
+                            'client_secrets.json', self.SCOPES
+                        )
+                        creds = flow.run_local_server(port=0)
+                    else:
+                        logger.warning("No Google Calendar credentials found. Using mock service.")
+                        logger.info("To use real Google Calendar:")
+                        logger.info("1. Add 'credentials.json' (service account) OR")
+                        logger.info("2. Add 'client_secrets.json' (OAuth2) to project root")
+                        self.service = None
+                        return
             
             if creds:
-                # Save the credentials for the next run
-                with open('token.json', 'w') as token:
-                    token.write(creds.to_json())
+                # Save OAuth credentials for the next run (not needed for service account)
+                if hasattr(creds, 'to_json') and not isinstance(creds, service_account.Credentials):
+                    with open('token.json', 'w') as token:
+                        token.write(creds.to_json())
                 
                 self.service = build('calendar', 'v3', credentials=creds)
                 logger.info("Google Calendar service initialized successfully")
