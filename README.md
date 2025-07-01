@@ -34,7 +34,7 @@ The system uses LangGraph to manage conversational state and flow, allowing for 
   - Integration with AI agent and calendar services
 
 ### AI Agent (`langgraph_agent.py`)
-- **Technology**: LangGraph for conversation flow, OpenAI GPT-4o for natural language processing
+- **Technology**: LangGraph for conversation flow, GEMINI GPT-4o for natural language processing
 - **Purpose**: Manages booking conversation flow and intent understanding
 - **Key Features**:
   - State-based conversation management
@@ -73,7 +73,7 @@ The system uses LangGraph to manage conversational state and flow, allowing for 
 
 ## External Dependencies
 
-- **OpenAI API**: For natural language processing (GPT-4o model)
+- **GEMINI API**: For natural language processing (GPT-4o model)
 - **Google Calendar API**: For calendar integration and appointment management
 - **Core Libraries**:
   - FastAPI for backend API
